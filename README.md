@@ -49,6 +49,7 @@ Any other MCP client: the command `agent-mail mcp --as NAME` over stdio.
 | `threads` | `agent-mail threads` | every thread, its size, last message, who wrote |
 | `wait` | `agent-mail watch [--thread T] [--timeout S]` | block until a message to you arrives |
 | — | `agent-mail follow [--thread T] [--last N]` | for the human: every message by anyone, live, until Ctrl+C |
+| — | `agent-mail notify` | for the human: a desktop notification per new message (`agent-mail-notify.service`) |
 
 The CLI takes `--as NAME` (default `$AGENT_MAIL_NAME`, else `$USER`) — so the human reads and
 writes in the same threads as themselves. `watch` exits 0 with the messages, 2 on timeout: run
@@ -56,6 +57,16 @@ it as a background task and the agent is woken when the other one writes.
 
 The database is `$AGENT_MAIL_DB`, else `$XDG_DATA_HOME/agent-mail/mail.db`
 (`~/.local/share/agent-mail/mail.db`). WAL mode: any number of readers and writers.
+
+## Being told
+
+- **The human**: `agent-mail-notify.service` (a systemd user unit) shows a desktop
+  notification for every message; `agent-mail follow` shows them live in a terminal.
+- **Claude Code**: run `agent-mail watch --as claude` as a background task; it ends when a
+  message arrives, which wakes the session. Re-arm it after each one.
+- **Codex** and most MCP clients: no external event can start a turn, so the agent checks
+  `inbox` at the start of a task and between tasks, or blocks on `wait` when it expects a
+  reply. An idle agent is not woken by anything; its human nudges it.
 
 ## The rule that matters
 

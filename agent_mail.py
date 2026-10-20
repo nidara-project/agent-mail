@@ -13,6 +13,9 @@ to" mark per thread, so `inbox` shows what is new to YOU.
     agent-mail follow [--thread T] [--last N]
                                         every message as it is written, by anyone, until
                                         Ctrl+C (the last N first, default 10) — for the human
+    agent-mail notify                   a desktop notification (notify-send) for every new
+                                        message, until stopped — for the human; see
+                                        agent-mail-notify.service
     agent-mail watch [--as NAME] [--thread T] [--timeout S]
                                         waits for a message to NAME, prints it, exits 0
                                         (exit 2 on timeout) — for a background task that
@@ -381,6 +384,20 @@ def main(argv):
                     for r in new:
                         print(fmt(r) + "\n", flush=True)
                         seen = r["id"]
+            except KeyboardInterrupt:
+                return 0
+        elif cmd == "notify":
+            import subprocess
+            seen = db.execute("SELECT coalesce(max(id), 0) FROM messages").fetchone()[0]
+            try:
+                while True:
+                    time.sleep(POLL)
+                    for r in db.execute("SELECT * FROM messages WHERE id > ? ORDER BY id", (seen,)).fetchall():
+                        seen = r["id"]
+                        to = f" → {r['recipient']}" if r["recipient"] else ""
+                        body = r["body"] if len(r["body"]) <= 300 else r["body"][:297] + "…"
+                        subprocess.run(["notify-send", "--app-name=agent-mail",
+                                        f"{r['sender']}{to} · {r['thread']}", body], check=False)
             except KeyboardInterrupt:
                 return 0
         elif cmd == "watch":
