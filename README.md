@@ -48,6 +48,7 @@ Any other MCP client: the command `agent-mail mcp --as NAME` over stdio.
 | `send` | `agent-mail send THREAD TEXT… [--to NAME]` | write to a thread (`-` as TEXT reads stdin) |
 | `threads` | `agent-mail threads` | every thread, its size, last message, who wrote |
 | `wait` | `agent-mail watch [--thread T] [--timeout S]` | block until a message to you arrives |
+| — | `agent-mail follow [--thread T] [--last N]` | for the human: every message by anyone, live, until Ctrl+C |
 
 The CLI takes `--as NAME` (default `$AGENT_MAIL_NAME`, else `$USER`) — so the human reads and
 writes in the same threads as themselves. `watch` exits 0 with the messages, 2 on timeout: run

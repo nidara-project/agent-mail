@@ -10,6 +10,9 @@ to" mark per thread, so `inbox` shows what is new to YOU.
     agent-mail inbox [--as NAME]        unread, by thread (marks nothing read)
     agent-mail read THREAD [--as NAME] [--all]   a thread's messages (marks them read)
     agent-mail threads                  every thread: messages, last one, who wrote
+    agent-mail follow [--thread T] [--last N]
+                                        every message as it is written, by anyone, until
+                                        Ctrl+C (the last N first, default 10) — for the human
     agent-mail watch [--as NAME] [--thread T] [--timeout S]
                                         waits for a message to NAME, prints it, exits 0
                                         (exit 2 on timeout) — for a background task that
@@ -315,7 +318,7 @@ def main(argv):
     cmd, rest = argv[0], argv[1:]
     opts = {"as": os.environ.get("AGENT_MAIL_NAME") or os.environ.get("USER") or "me",
             "to": None, "thread": None, "timeout": None, "session": os.environ.get("AGENT_MAIL_SESSION"),
-            "all": False}
+            "all": False, "last": None}
     pos = []
     i = 0
     while i < len(rest):
@@ -360,6 +363,26 @@ def main(argv):
         elif cmd == "threads":
             for r in threads(db):
                 print(f"{r['thread']}: {r['n']} messages, last {fmt_time(r['last'])} ({r['who']})")
+        elif cmd == "follow":
+            q, args = "SELECT * FROM messages", []
+            if opts["thread"]:
+                q, args = q + " WHERE thread = ?", [norm_thread(opts["thread"])]
+            last = int(opts["last"]) if opts["last"] else 10
+            rows = db.execute(q + " ORDER BY id DESC LIMIT ?", args + [last]).fetchall()
+            seen = db.execute("SELECT coalesce(max(id), 0) FROM messages").fetchone()[0]
+            for r in reversed(rows):
+                print(fmt(r) + "\n", flush=True)
+            try:
+                while True:
+                    time.sleep(POLL)
+                    where = " WHERE id > ?" + (" AND thread = ?" if opts["thread"] else "")
+                    new = db.execute("SELECT * FROM messages" + where + " ORDER BY id",
+                                     [seen] + args).fetchall()
+                    for r in new:
+                        print(fmt(r) + "\n", flush=True)
+                        seen = r["id"]
+            except KeyboardInterrupt:
+                return 0
         elif cmd == "watch":
             timeout = float(opts["timeout"]) if opts["timeout"] else 10 ** 9
             rows = wait(db, me, opts["thread"], timeout)
