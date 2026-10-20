@@ -66,3 +66,7 @@ the other through the mailbox. Never put secrets in a message: the database is a
 
 Decisions belong in your issue tracker. The mailbox is for coordination: "pushed the fix",
 "your demo fails because of X", "waiting on your PR".
+
+## License
+
+MIT — see `LICENSE`.
